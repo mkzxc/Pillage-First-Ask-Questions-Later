@@ -1,0 +1,38 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "@mkzxc/cross-tab-without-shared-worker--alpha",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "author": "mkzxc <mirkozxc@gmail.com>",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkzxc/cross-tab-without-shared-worker",
+    "directory": "packages/cross-tab-without-shared-worker--alpha"
+  },
+  "exports": {
+    "./tab": {
+      "default": "./src/tab.ts"
+    },
+    "./sw": {
+      "default": "./src/sw/sw.ts"
+    },
+    "./worker-adapter": {
+      "default": "./src/adapters/WorkerAdapter.ts"
+    }
+  },
+  "scripts": {
+    "lint:check": "biome lint --no-errors-on-unmatched",
+    "lint": "biome lint --fix --no-errors-on-unmatched",
+    "lint:check/oxlint": "oxlint --type-aware",
+    "lint/oxlint": "oxlint --type-aware --fix",
+    "format:check": "biome ci --linter-enabled=false",
+    "format": "biome check --write --no-errors-on-unmatched",
+    "type-check": "tsgo"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "7.0.0-dev.20260409.1",
+    "typescript": "6.0.2"
+  }
+}
