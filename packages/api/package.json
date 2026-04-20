@@ -37,6 +37,7 @@
     "@pillage-first/game-assets": "*",
     "@pillage-first/types": "*",
     "@pillage-first/utils": "*",
+    "@mkzxc/cross-tab-without-shared-worker--alpha": "*",
     "@sqlite.org/sqlite-wasm": "3.51.2-build8",
     "moderndash": "4.0.2",
     "path-to-regexp": "8.4.2",

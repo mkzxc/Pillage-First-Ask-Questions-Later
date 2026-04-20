@@ -9,20 +9,21 @@ import {
 import type { EventApiNotificationEvent } from '@pillage-first/types/api-events';
 import type { Server } from '@pillage-first/types/models/server';
 import { eventsCacheKey } from 'app/(game)/constants/query-keys';
-import { useApiWorker } from 'app/(game)/hooks/use-api-worker';
+// import { useApiWorker } from 'app/(game)/hooks/use-api-worker';
 import { cachesToClearOnResolve } from 'app/(game)/providers/constants/caches-to-clear-on-resolve';
 import { isEventResolvedSuccessfullyNotificationMessageEvent } from 'app/(game)/providers/guards/api-notification-event-guards';
 import {
   createWorkerFetcher,
   type Fetcher,
 } from 'app/(game)/providers/utils/worker-fetch';
+import { useApiTab } from '../hooks/use-api-tab';
 
 type ApiProviderProps = {
   serverSlug: Server['slug'];
 };
 
 type ApiContextReturn = {
-  apiWorker: Worker;
+  apiTab: ReturnType<typeof useApiTab>['apiTab'];
   fetcher: Fetcher;
 };
 
@@ -35,10 +36,11 @@ export const ApiProvider = ({
   serverSlug,
 }: PropsWithChildren<ApiProviderProps>) => {
   const queryClient = useQueryClient();
-  const { apiWorker } = useApiWorker(serverSlug);
+  // const { apiWorker } = useApiWorker(serverSlug);
+  const { apiTab } = useApiTab(serverSlug);
 
   useEffect(() => {
-    if (!apiWorker) {
+    if (!apiTab) {
       return;
     }
 
@@ -69,6 +71,8 @@ export const ApiProvider = ({
     };
 
     const handleMessage = (event: MessageEvent<EventApiNotificationEvent>) => {
+      // console.log('ApiProvider handleMessage', event);
+
       if (!isEventResolvedSuccessfullyNotificationMessageEvent(event)) {
         return;
       }
@@ -99,12 +103,28 @@ export const ApiProvider = ({
       evDebounced();
     };
 
-    apiWorker.addEventListener('message', handleMessage);
+    // apiWorker.addEventListener('message', handleMessage);
+
+    // return () => {
+    //   apiWorker.removeEventListener('message', handleMessage);
+
+    //   // Attempt to cancel pending debounced calls
+    //   for (const debounced of debouncedInvalidators.values()) {
+    //     if (typeof debounced.cancel === 'function') {
+    //       debounced.cancel();
+    //     }
+    //   }
+    //   debouncedInvalidators.clear();
+    // };
+
+    const onSuccess = apiTab.subscribe('OP_SUCCESS', (payload) => {
+      //@ts-expect-error //TODO Testing purposes
+      handleMessage(payload.result);
+    });
 
     return () => {
-      apiWorker.removeEventListener('message', handleMessage);
+      onSuccess?.();
 
-      // Attempt to cancel pending debounced calls
       for (const debounced of debouncedInvalidators.values()) {
         if (typeof debounced.cancel === 'function') {
           debounced.cancel();
@@ -112,14 +132,14 @@ export const ApiProvider = ({
       }
       debouncedInvalidators.clear();
     };
-  }, [apiWorker, queryClient]);
+  }, [apiTab, queryClient]);
 
   const value: ApiContextReturn = useMemo(() => {
     return {
-      apiWorker,
-      fetcher: createWorkerFetcher(apiWorker),
+      apiTab,
+      fetcher: createWorkerFetcher(),
     };
-  }, [apiWorker]);
+  }, [apiTab]);
 
   return <ApiContext value={value}>{children}</ApiContext>;
 };

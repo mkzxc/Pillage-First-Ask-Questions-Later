@@ -80,19 +80,19 @@ import { Separator } from 'app/components/ui/separator';
 import { Spinner } from 'app/components/ui/spinner';
 import { useDialog } from 'app/hooks/use-dialog';
 
-const closeGameWorld = (apiWorker: Worker): void => {
-  const handler = ({ data }: MessageEvent) => {
-    const { type } = data;
+// const closeGameWorld = (apiWorker: Worker): void => {
+//   const handler = ({ data }: MessageEvent) => {
+//     const { type } = data;
 
-    if (type === 'WORKER_CLOSE_SUCCESS') {
-      apiWorker.removeEventListener('message', handler);
-      apiWorker.terminate();
-    }
-  };
+//     if (type === 'WORKER_CLOSE_SUCCESS') {
+//       apiWorker.removeEventListener('message', handler);
+//       apiWorker.terminate();
+//     }
+//   };
 
-  apiWorker.addEventListener('message', handler);
-  apiWorker.postMessage({ type: 'WORKER_CLOSE' });
-};
+//   apiWorker.addEventListener('message', handler);
+//   apiWorker.postMessage({ type: 'WORKER_CLOSE' });
+// };
 
 const TOOLTIP_DELAY_SHOW = 500;
 
@@ -602,7 +602,8 @@ type TopNavigationProps = {
 
 const TopNavigation = ({ onDeveloperToolsToggle }: TopNavigationProps) => {
   const { t } = useTranslation();
-  const { apiWorker } = use(ApiContext);
+  // const { apiWorker } = use(ApiContext);
+  const { apiTab } = use(ApiContext);
   const isWiderThanLg = useMediaQuery('(min-width: 1024px)');
   const { preferences } = usePreferences();
 
@@ -682,7 +683,8 @@ const TopNavigation = ({ onDeveloperToolsToggle }: TopNavigationProps) => {
                   <Link
                     to="/game-worlds"
                     onClick={() => {
-                      closeGameWorld(apiWorker);
+                      // closeGameWorld(apiWorker);
+                      apiTab.closeWorker();
                     }}
                   >
                     <DesktopTopRowItem
@@ -767,7 +769,8 @@ const MobileBottomNavigation = ({
   onDeveloperToolsToggle,
 }: MobileBottomNavigationProps) => {
   const { t } = useTranslation();
-  const { apiWorker } = use(ApiContext);
+  // const { apiWorker } = use(ApiContext);
+  const { apiTab } = use(ApiContext);
   const { preferences } = usePreferences();
 
   const container = useRef<HTMLDivElement>(null);
@@ -878,7 +881,8 @@ const MobileBottomNavigation = ({
             <NavigationSideItem
               to="/game-worlds"
               onClick={() => {
-                closeGameWorld(apiWorker);
+                // closeGameWorld(apiWorker);
+                apiTab.closeWorker();
               }}
               aria-label={t('Logout')}
               title={t('Logout')}

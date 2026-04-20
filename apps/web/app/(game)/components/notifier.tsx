@@ -21,7 +21,7 @@ import {
 } from '@pillage-first/utils/guards/event';
 import { usePreferences } from 'app/(game)/(village-slug)/hooks/use-preferences';
 import { useServer } from 'app/(game)/(village-slug)/hooks/use-server';
-import { useApiWorker } from 'app/(game)/hooks/use-api-worker';
+// import { useApiWorker } from 'app/(game)/hooks/use-api-worker';
 import { useNotificationPermission } from 'app/(game)/hooks/use-notification-permission';
 import { useTabFocus } from 'app/(game)/hooks/use-tab-focus';
 import {
@@ -29,6 +29,7 @@ import {
   isEventCreatedNotificationMessageEvent,
   isEventResolvedNotificationMessageEvent,
 } from 'app/(game)/providers/guards/api-notification-event-guards';
+import { useApiTab } from '../hooks/use-api-tab';
 
 type NotificationFactoryArgs = {
   t: TFunction;
@@ -250,18 +251,21 @@ type NotifierProps = {
 
 export const Notifier = ({ serverSlug }: NotifierProps) => {
   const { t } = useTranslation();
-  const { apiWorker } = useApiWorker(serverSlug);
+  // const { apiWorker } = useApiWorker(serverSlug);
+  const { apiTab } = useApiTab(serverSlug);
   const { preferences } = usePreferences();
   const notificationPermission = useNotificationPermission();
   const isTabFocused = useTabFocus();
   const { server } = useServer();
 
   useEffect(() => {
-    if (!apiWorker) {
+    if (!apiTab) {
       return;
     }
 
     const handleMessage = async (event: MessageEvent<ApiNotificationEvent>) => {
+      // console.log('Notifier handleMessage:', event);
+
       if (isEventCreatedNotificationMessageEvent(event)) {
         const { data } = event;
         const info = getEventCreatedInfo(data, {
@@ -326,12 +330,21 @@ export const Notifier = ({ serverSlug }: NotifierProps) => {
       }
     };
 
-    apiWorker.addEventListener('message', handleMessage);
+    // apiWorker.addEventListener('message', handleMessage);
+
+    // return () => {
+    //   apiWorker.removeEventListener('message', handleMessage);
+    // };
+
+    const onMessage = apiTab.subscribe('OP_SUCCESS', (payload) => {
+      //@ts-expect-error //TODO Testing purposes
+      handleMessage(payload);
+    });
 
     return () => {
-      apiWorker.removeEventListener('message', handleMessage);
+      onMessage?.();
     };
-  }, [apiWorker, t, notificationPermission, isTabFocused, server, preferences]);
+  }, [apiTab, t, notificationPermission, isTabFocused, server, preferences]);
 
   return null;
 };
