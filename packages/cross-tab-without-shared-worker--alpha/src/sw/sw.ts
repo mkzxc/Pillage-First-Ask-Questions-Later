@@ -5,11 +5,11 @@ import { DWService } from './services/DWService';
 import { TabService } from './services/TabsService';
 
 class SW {
-  #sw;
+  #sw: ServiceWorkerGlobalScope;
   //TODO Rename
   #map = new Map<string, { tabsService: TabService; dwService: DWService }>();
-  #Gateway;
-  #header;
+  #Gateway: Gateway;
+  #header: string;
 
   constructor(header: string) {
     this.#sw = self as unknown as ServiceWorkerGlobalScope;

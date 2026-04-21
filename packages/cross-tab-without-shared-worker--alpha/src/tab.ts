@@ -12,17 +12,17 @@ import type {
 class Tab<T extends ActionData> {
   //This can't be shared across instances since only one tab must have this set different to null
   #currentDW: Worker | null = null;
-  #pathSW;
-  #pathDW;
-  #idDW;
-  #eventBus;
+  // #pathSW: string | URL;
+  #pathDW: string | URL;
+  #idDW: string;
+  #eventBus: EventBus<T>;
 
   constructor(
-    pathServiceWorker: string | URL,
+    // pathServiceWorker: string | URL,
     pathWorker: string | URL,
     idWorker: string,
   ) {
-    this.#pathSW = pathServiceWorker;
+    // this.pathSW = pathServiceWorker;
     this.#pathDW = pathWorker;
     this.#idDW = idWorker;
     this.#eventBus = new EventBus<T>();
@@ -208,7 +208,6 @@ class Tab<T extends ActionData> {
       },
     );
 
-    await navigator.serviceWorker.register(this.#pathSW, { type: 'module' });
     const reg = await this.getActiveSW();
 
     if (!navigator.serviceWorker.controller) {

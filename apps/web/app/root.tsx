@@ -6,8 +6,13 @@ import './styles/app.css';
 import type { Route } from '@react-router/types/app/+types/root';
 import { WebRTCAdvertiser } from 'app/components/webrtc-advertiser';
 import { clientSessionMiddleware } from 'app/middleware/client-session-middleware';
+//@ts-expect-error //TODO Testing purposes
+import { registerSW } from 'virtual:pwa-register';
 
 await initFaro();
+registerSW({
+  immediate: true,
+});
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   clientSessionMiddleware,

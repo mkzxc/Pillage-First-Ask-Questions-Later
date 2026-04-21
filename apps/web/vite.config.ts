@@ -1,9 +1,15 @@
 import { resolve } from 'node:path';
+import { readFileSync } from 'fs';
 import faroRollupPlugin from '@grafana/faro-rollup-plugin';
 import mdx from '@mdx-js/rollup';
 import tailwindcss from '@tailwindcss/vite';
+import { build } from 'esbuild';
 import { reactIconsSprite } from 'react-icons-sprite/vite';
-import { defineConfig as defineViteConfig, mergeConfig } from 'vite';
+import {
+  defineConfig as defineViteConfig,
+  mergeConfig,
+  type Plugin,
+} from 'vite';
 import devtoolsJson from 'vite-plugin-devtools-json';
 import { type ManifestOptions, VitePWA } from 'vite-plugin-pwa';
 import { defineConfig as defineVitestConfig } from 'vitest/config';
@@ -17,7 +23,8 @@ const graphicsVersion =
 const isInTestMode = process.env.VITEST === 'true';
 const isDeployingToMaster = process.env.HEAD === 'master';
 
-const manifest: Partial<ManifestOptions> = {
+//TODO Testing purposes
+const _manifest: Partial<ManifestOptions> = {
   name: 'Pillage First! (Ask Questions Later)',
   short_name: 'Pillage First!',
   description:
@@ -45,6 +52,49 @@ const manifest: Partial<ManifestOptions> = {
   categories: ['games', 'strategy', 'browser-game'],
 };
 
+//TODO Testing purposes
+function serviceWorkerPlugin(): Plugin {
+  let swContent: Buffer | null = null;
+
+  async function buildSW() {
+    await build({
+      entryPoints: ['./app/sw.ts'],
+      bundle: true,
+      outfile: './build/client/sw.js',
+      format: 'esm',
+      platform: 'browser',
+    });
+    swContent = readFileSync(resolve('./build/client/sw.js'));
+  }
+  return {
+    name: 'service-worker-plugin',
+    async buildStart() {
+      await buildSW();
+    },
+    async handleHotUpdate({ file }: { file: string }) {
+      if (file.includes('/sw/')) {
+        await buildSW();
+      }
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url === '/sw.js') {
+          if (!swContent) {
+            next();
+            return;
+          }
+          res.setHeader('Content-Type', 'application/javascript');
+          res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+          res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+          res.end(swContent);
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 const viteConfig = defineViteConfig({
   plugins: [
@@ -64,15 +114,16 @@ const viteConfig = defineViteConfig({
     !isInTestMode && tailwindcss(),
     !isInTestMode &&
       VitePWA({
-        registerType: 'autoUpdate',
-        manifest,
-        outDir: 'build/client',
-        injectManifest: {
-          swSrc: 'app/sw.ts',
-          swDest: 'sw.js',
-          globIgnores: ['**/*.html'],
-        },
+        // registerType: 'autoUpdate',
+        // manifest,
+        // outDir: 'build/client',
+        // injectManifest: {
+        //   swSrc: 'app/sw.ts',
+        //   swDest: 'sw.js',
+        //   globIgnores: ['**/*.html'],
+        // },
       }),
+    !isInTestMode && serviceWorkerPlugin(),
     isDeployingToMaster &&
       faroRollupPlugin({
         appName: 'pillage-first',

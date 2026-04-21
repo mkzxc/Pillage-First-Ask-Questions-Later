@@ -278,18 +278,16 @@ const onClose = () => {
 const workerAdapter = new WorkerAdapter<Config>(onMessage, onClose);
 
 //TODO Test errors linked to OutdatedDatabaseSchemaError, event:database-initialization-success/error
-function main() {
+async function main() {
   try {
-    setupDB().then(() => {
-      // globalThis.postMessage({
-      //   eventKey: 'event:database-initialization-success',
-      // } satisfies ApiNotificationEvent);
-      const init = workerAdapter.getInitializerDW();
-      init();
-    });
+    await setupDB();
+    // globalThis.postMessage({
+    //   eventKey: 'event:database-initialization-success',
+    // } satisfies ApiNotificationEvent);
+    const init = workerAdapter.getInitializerDW();
+    init();
   } catch (error) {
     throw new Error(error);
-
     // globalThis.postMessage({
     //   eventKey: 'event:database-initialization-error',
     //   error: error as Error,

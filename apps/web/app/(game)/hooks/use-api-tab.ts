@@ -13,7 +13,7 @@ const createApiTab = async (serverSlug: string): Promise<Tab<Config>> => {
   const url = new URL(ApiWorker, import.meta.url);
   url.searchParams.set('server-slug', serverSlug);
 
-  const tab = new Tab('../../../build/client/sw.js', url, serverSlug);
+  const tab = new Tab<Config>(url, serverSlug);
   await tab.setup();
   return tab;
 };
