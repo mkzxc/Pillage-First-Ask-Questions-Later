@@ -39,6 +39,19 @@ class Gateway {
     });
   };
 
+  setupListenerDWCustomMessages = (
+    port: MessagePort,
+    notifyTabs: (
+      payload: Extract<DWToSWMessage, { type: 'CUSTOM' }>['payload'],
+    ) => Promise<void>,
+  ) => {
+    port.onmessage = (e: MessageEvent<DWToSWMessage>) => {
+      if (e.data.type === 'CUSTOM') {
+        notifyTabs(e.data.payload);
+      }
+    };
+  };
+
   handleFetch = async (
     key: string,
     event: FetchEvent,

@@ -275,7 +275,10 @@ const onClose = () => {
   // globalThis.postMessage({ type: 'WORKER_CLOSE_SUCCESS' });
 };
 
-const workerAdapter = new WorkerAdapter<Config>(onMessage, onClose);
+const { getInitializerDW, sendMessageFromDW } = new WorkerAdapter<Config>(
+  (payload) => onMessage(payload),
+  onClose,
+);
 
 //TODO Test errors linked to OutdatedDatabaseSchemaError, event:database-initialization-success/error
 async function main() {
@@ -284,7 +287,7 @@ async function main() {
     // globalThis.postMessage({
     //   eventKey: 'event:database-initialization-success',
     // } satisfies ApiNotificationEvent);
-    const init = workerAdapter.getInitializerDW();
+    const init = getInitializerDW();
     init();
   } catch (error) {
     throw new Error(error);
@@ -296,3 +299,5 @@ async function main() {
 }
 
 main();
+
+export { sendMessageFromDW };

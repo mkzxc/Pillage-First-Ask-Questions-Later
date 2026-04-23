@@ -8,7 +8,9 @@ const TOPICS = SW_TO_TAB_MESSAGE_TYPES.filter(
   (type) =>
     type === 'OP_ERROR' ||
     type === 'OP_SUCCESS' ||
-    type === 'WORKER_TERMINATED',
+    type === 'WORKER_TERMINATED' ||
+    type === 'WORKER_CUSTOM_MESSAGE' ||
+    type === 'PROPAGATED_MESSAGE',
 );
 
 type BaseTopic = Extract<(typeof TOPICS)[number], 'WORKER_TERMINATED'>;
@@ -21,7 +23,11 @@ type SubscriberCallbackPayload<
   ? SWToTabMessageOnSuccess<T>['payload']
   : U extends 'OP_ERROR'
     ? Extract<SWToTabMessage, { type: 'OP_ERROR' }>['payload']
-    : undefined;
+    : U extends 'WORKER_CUSTOM_MESSAGE'
+      ? Extract<SWToTabMessage, { type: 'WORKER_CUSTOM_MESSAGE' }>['payload']
+      : U extends 'PROPAGATED_MESSAGE'
+        ? Extract<SWToTabMessage, { type: 'PROPAGATED_MESSAGE' }>['payload']
+        : undefined;
 
 type SubscriberCallback<
   T extends ActionData,
@@ -67,7 +73,7 @@ class EventBus<T extends ActionData> {
       const subscriptions = this.#subscribers.get(topic);
       const index = subscriptions?.indexOf(subscription);
 
-      if (!index) {
+      if (typeof index === 'undefined' || index === -1) {
         console.error('Sub not found');
       } else {
         subscriptions?.splice(index, 1);

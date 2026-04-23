@@ -5,6 +5,7 @@ import type { ActionData, OnMessagePayload } from './types';
 class WorkerAdapter<T extends ActionData> {
   #initializerDW: () => void;
   #port: MessagePort | null = null;
+  #customMessagesPort: MessagePort | null = null;
 
   //TODO This name can be misleading due to actual implementation
   private isTabMessage = (data: unknown): data is TabToDWMessage => {
@@ -31,12 +32,15 @@ class WorkerAdapter<T extends ActionData> {
     );
   };
 
-  private postMessageToSW = (message: DWToSWMessage) => {
-    if (!this.#port) {
+  private postMessageToSW = (
+    message: DWToSWMessage,
+    port: MessagePort | null,
+  ) => {
+    if (!port) {
       //Should never happen
       throw new Error('DW: MessagePort not available');
     }
-    this.#port.postMessage(message);
+    port.postMessage(message);
   };
 
   /**
@@ -51,15 +55,18 @@ class WorkerAdapter<T extends ActionData> {
       throw new Error('DW: MessagePort not available');
     }
     if (data.type === 'PING') {
-      this.postMessageToSW({ type: 'PONG' });
+      this.postMessageToSW({ type: 'PONG' }, this.#port);
       return;
     }
     //TODO Support async handler cb?
     const result = cb(data.payload as Parameters<typeof cb>[0]);
-    this.postMessageToSW({
-      type: 'SUCCESS',
-      result: result || null,
-    });
+    this.postMessageToSW(
+      {
+        type: 'SUCCESS',
+        result: result || null,
+      },
+      this.#port,
+    );
   };
 
   /**
@@ -80,8 +87,10 @@ class WorkerAdapter<T extends ActionData> {
           return;
         }
 
-        if (event.data.type === 'SW_PORT') {
-          this.#port = event.data.payload;
+        if (event.data.type === 'SW_PORTS') {
+          this.#port = event.data.payload[0];
+
+          this.#customMessagesPort = event.data.payload[1];
 
           this.#port.onmessage = (e) => {
             if (!this.isSWMessage(e.data)) {
@@ -106,10 +115,13 @@ class WorkerAdapter<T extends ActionData> {
                 externalError = error;
               }
 
-              this.postMessageToSW({
-                type: 'FAILURE',
-                error: externalError.message,
-              });
+              this.postMessageToSW(
+                {
+                  type: 'FAILURE',
+                  error: externalError.message,
+                },
+                this.#port,
+              );
             }
           };
         }
@@ -124,6 +136,19 @@ class WorkerAdapter<T extends ActionData> {
 
   getInitializerDW = () => {
     return this.#initializerDW;
+  };
+
+  /**
+   * User exposed method to propagate messages from the Dedicated Worker to all Tabs
+   */
+  sendMessageFromDW = (message: unknown) => {
+    this.postMessageToSW(
+      {
+        type: 'CUSTOM',
+        payload: message,
+      },
+      this.#customMessagesPort,
+    );
   };
 }
 

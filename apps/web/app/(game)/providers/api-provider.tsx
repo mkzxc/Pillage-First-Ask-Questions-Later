@@ -18,6 +18,27 @@ import {
 } from 'app/(game)/providers/utils/worker-fetch';
 import { useApiTab } from '../hooks/use-api-tab';
 
+type PropagatedInvalidationMessage = {
+  type: 'INVALIDATION';
+  queryKeys: string[][];
+  source: string;
+};
+
+function isPropagatedInvalidationMessage(
+  data: unknown,
+): data is PropagatedInvalidationMessage {
+  return Boolean(
+    typeof data === 'object' &&
+      data &&
+      'type' in data &&
+      data.type === 'INVALIDATION' &&
+      'queryKeys' in data &&
+      Array.isArray(data.queryKeys) &&
+      'source' in data &&
+      typeof data.source === 'string',
+  );
+}
+
 type ApiProviderProps = {
   serverSlug: Server['slug'];
 };
@@ -71,8 +92,6 @@ export const ApiProvider = ({
     };
 
     const handleMessage = (event: MessageEvent<EventApiNotificationEvent>) => {
-      // console.log('ApiProvider handleMessage', event);
-
       if (!isEventResolvedSuccessfullyNotificationMessageEvent(event)) {
         return;
       }
@@ -117,13 +136,13 @@ export const ApiProvider = ({
     //   debouncedInvalidators.clear();
     // };
 
-    const onSuccess = apiTab.subscribe('OP_SUCCESS', (payload) => {
-      //@ts-expect-error //TODO Testing purposes
-      handleMessage(payload.result);
+    const onMessage = apiTab.subscribe('WORKER_CUSTOM_MESSAGE', (payload) => {
+      //@ts-expect-error Testing purposes
+      handleMessage({ data: payload });
     });
 
     return () => {
-      onSuccess?.();
+      onMessage?.();
 
       for (const debounced of debouncedInvalidators.values()) {
         if (typeof debounced.cancel === 'function') {
@@ -133,6 +152,23 @@ export const ApiProvider = ({
       debouncedInvalidators.clear();
     };
   }, [apiTab, queryClient]);
+
+  useEffect(() => {
+    const onMessage = apiTab.subscribe('PROPAGATED_MESSAGE', (payload) => {
+      if (
+        isPropagatedInvalidationMessage(payload) &&
+        payload.source !== apiTab.getUID()
+      ) {
+        payload.queryKeys.forEach((arr) => {
+          queryClient.invalidateQueries({ queryKey: arr as string[] });
+        });
+      }
+    });
+
+    return () => {
+      onMessage?.();
+    };
+  }, [queryClient, apiTab]);
 
   const value: ApiContextReturn = useMemo(() => {
     return {

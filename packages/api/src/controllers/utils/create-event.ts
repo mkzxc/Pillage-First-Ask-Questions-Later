@@ -5,6 +5,7 @@ import type {
   GameEventType,
 } from '@pillage-first/types/models/game-event';
 import type { DbFacade } from '@pillage-first/utils/facades/database';
+import { sendMessageFromDW } from '../../api-worker';
 import { triggerKick } from '../../scheduler/scheduler-signal';
 import { subtractVillageResourcesAt } from '../../utils/village';
 import {
@@ -96,7 +97,12 @@ export const createEvents = <T extends GameEventType>(
   insertEvents(database, events);
   runEventCreationSideEffects(database, events);
 
-  globalThis.postMessage?.({
+  // globalThis.postMessage?.({
+  //   eventKey: 'event:created',
+  //   ...events[0],
+  // } satisfies EventApiNotificationEvent);
+
+  sendMessageFromDW({
     eventKey: 'event:created',
     ...events[0],
   } satisfies EventApiNotificationEvent);

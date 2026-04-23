@@ -1,23 +1,28 @@
 import { LOCKS } from '../../const';
 
+type ServicePorts = {
+  main: MessagePort;
+  custom: MessagePort;
+};
+
 class DWService {
-  #portToSW: MessagePort | null = null;
+  #ports: ServicePorts | null = null;
   #owner: string | null = null;
   #ready: { promise: Promise<unknown>; resolve: () => void } | null = null;
   #recovery: Promise<void> | null = null;
   #close: { resolve: () => void; reject: () => void } | null = null;
 
-  getPort = () => {
-    return this.#portToSW;
+  getMainPort = () => {
+    return this.#ports?.main || null;
   };
 
-  resetPortAndOwner = () => {
-    this.#portToSW = null;
+  resetPortsAndOwner = () => {
+    this.#ports = null;
     this.#owner = null;
   };
 
-  setPortAndOwner = (port: MessagePort, clientId: string) => {
-    this.#portToSW = port;
+  setPortsAndOwner = (ports: ServicePorts, clientId: string) => {
+    this.#ports = ports;
     this.#owner = clientId;
     if (this.#ready !== null) {
       this.#ready.resolve();
@@ -30,7 +35,7 @@ class DWService {
     getClient: (sw: ServiceWorkerGlobalScope) => Promise<WindowClient>,
   ) => {
     try {
-      this.resetPortAndOwner();
+      this.resetPortsAndOwner();
 
       const client = await getClient(sw);
 
@@ -45,7 +50,7 @@ class DWService {
       };
 
       client.postMessage({
-        type: !this.#portToSW ? 'CREATE_WORKER' : 'RESEND_PORT',
+        type: !this.#ports ? 'CREATE_WORKER' : 'RESEND_PORT',
       });
 
       await this.#ready.promise;
@@ -55,7 +60,7 @@ class DWService {
     }
   };
 
-  ensurePortIsReady = async (
+  ensurePortsAreReady = async (
     sw: ServiceWorkerGlobalScope,
     getClient: (sw: ServiceWorkerGlobalScope) => Promise<WindowClient>,
   ) => {
@@ -64,7 +69,7 @@ class DWService {
       return;
     }
 
-    if (this.#portToSW && this.#owner) {
+    if (this.#ports && this.#owner) {
       const allClients = await sw.clients.matchAll({ type: 'window' });
       const ownerAlive = allClients.some((c) => c.id === this.#owner);
       if (ownerAlive) {

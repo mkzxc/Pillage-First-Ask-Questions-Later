@@ -1,6 +1,7 @@
 import type { EventApiNotificationEvent } from '@pillage-first/types/api-events';
 import type { GameEvent } from '@pillage-first/types/models/game-event';
 import type { DbFacade } from '@pillage-first/utils/facades/database';
+import { sendMessageFromDW } from '../api-worker';
 import { getGameEventResolver } from './event-type-mapper';
 import { eventSchema } from './zod/event-schemas';
 
@@ -27,13 +28,22 @@ export const resolveEvent = (
     // @ts-expect-error - this is fine, we can't properly type all possible GameEvents
     resolver(database, event);
 
-    globalThis.postMessage({
+    // globalThis.postMessage({
+    //   eventKey: 'event:success',
+    //   ...event,
+    // } satisfies EventApiNotificationEvent);
+
+    sendMessageFromDW({
       eventKey: 'event:success',
       ...event,
     } satisfies EventApiNotificationEvent);
   } catch (error) {
     console.error(error);
-    globalThis.postMessage({
+    // globalThis.postMessage({
+    //   eventKey: 'event:error',
+    //   ...event,
+    // } satisfies EventApiNotificationEvent);
+    sendMessageFromDW({
       eventKey: 'event:error',
       ...event,
     } satisfies EventApiNotificationEvent);

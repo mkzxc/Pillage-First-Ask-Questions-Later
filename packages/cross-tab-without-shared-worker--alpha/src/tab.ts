@@ -16,6 +16,7 @@ class Tab<T extends ActionData> {
   #pathDW: string | URL;
   #idDW: string;
   #eventBus: EventBus<T>;
+  #uid: string;
 
   constructor(
     // pathServiceWorker: string | URL,
@@ -26,6 +27,7 @@ class Tab<T extends ActionData> {
     this.#pathDW = pathWorker;
     this.#idDW = idWorker;
     this.#eventBus = new EventBus<T>();
+    this.#uid = crypto.randomUUID();
   }
 
   private getActiveSW = async () => {
@@ -41,30 +43,44 @@ class Tab<T extends ActionData> {
     }
   };
 
+  private getTransferable = (transf?: Transferable | Transferable[]) => {
+    const transferable: Transferable[] = [];
+    if (transf) {
+      if (Array.isArray(transf)) {
+        transferable.push(...transf);
+      } else {
+        transferable.push(transf);
+      }
+    }
+    return transferable;
+  };
+
   private postMessageToDW = (
     DW: Worker,
     message: TabToDWMessage,
-    port: MessagePort,
+    transf?: Transferable | Transferable[],
   ) => {
-    DW.postMessage(message, [port]);
+    DW.postMessage(message, this.getTransferable(transf));
   };
 
   private postMessageToSW = (
     SW: ServiceWorker,
     message: TabToSWMessage,
-    port?: MessagePort,
+    transf?: Transferable | Transferable[],
   ) => {
-    const transferable: Transferable[] = [];
-    if (port) {
-      transferable.push(port);
-    }
-    SW.postMessage(message, transferable);
+    SW.postMessage(message, this.getTransferable(transf));
   };
 
   private sendPortToSW = async (DW: Worker, idDW: string) => {
     const reg = await this.getActiveSW();
     const { port1, port2 } = new MessageChannel();
-    this.postMessageToDW(DW, { type: 'SW_PORT', payload: port1 }, port1);
+    const { port1: portA, port2: portB } = new MessageChannel();
+    const portsForDW: [MessagePort, MessagePort] = [port1, portA];
+    this.postMessageToDW(
+      DW,
+      { type: 'SW_PORTS', payload: portsForDW },
+      portsForDW,
+    );
 
     await new Promise((resolve) => {
       const listener = (e: MessageEvent<SWToTabMessage>) => {
@@ -75,10 +91,11 @@ class Tab<T extends ActionData> {
       };
 
       navigator.serviceWorker.addEventListener('message', listener);
+      const portsForSW: [MessagePort, MessagePort] = [port2, portB];
       this.postMessageToSW(
         reg,
-        { type: 'WORKER_PORT', payload: { port: port2, idDW } },
-        port2,
+        { type: 'WORKER_PORTS', payload: { ports: portsForSW, idDW } },
+        portsForSW,
       );
     });
   };
@@ -171,10 +188,44 @@ class Tab<T extends ActionData> {
     this.postMessageToSW(reg, { type: 'FIND_TAB_TO_TERMINATE_WORKER' });
   };
 
+  propagateMessage = async (message: object) => {
+    const reg = await this.getActiveSW();
+
+    const { port1, port2 } = new MessageChannel();
+
+    const onMessage = (e: MessageEvent<DWToTabMessage>) => {
+      if (e.data.type === 'PROCEED_TERMINATION') {
+        this.#currentDW?.terminate();
+        this.#currentDW = null;
+        port1.onmessage = null;
+        this.postMessageToSW(reg, { type: 'ELECTED_TAB_TERMINATED_WORKER' });
+      }
+    };
+    port1.onmessage = onMessage;
+
+    this.postMessageToSW(
+      reg,
+      { type: 'PROPAGATE_MESSAGE', payload: message },
+      port2,
+    );
+  };
+
+  getUID = () => {
+    return this.#uid;
+  };
+
   setup = async () => {
     navigator.serviceWorker.addEventListener(
       'message',
       async (event: MessageEvent<SWToTabMessage>) => {
+        if (event.data.type === 'PROPAGATED_MESSAGE') {
+          this.publish(event.data.type, event.data.payload);
+        }
+
+        if (event.data.type === 'WORKER_CUSTOM_MESSAGE') {
+          this.publish(event.data.type, event.data.payload);
+        }
+
         if (event.data.type === 'ELECTED_TAB_SHOULD_TERMINATE_WORKER') {
           await this.terminateWorker();
         }

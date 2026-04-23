@@ -18,7 +18,7 @@ class SW {
   }
 
   private isPortAlive(idDW: string) {
-    const portDW = this.#map.get(idDW)?.dwService.getPort();
+    const portDW = this.#map.get(idDW)?.dwService.getMainPort();
     if (!portDW) {
       return false;
     }
@@ -29,7 +29,7 @@ class SW {
         if (!linked) {
           console.error("Can't get linked services", idDW);
         } else {
-          linked.dwService.resetPortAndOwner();
+          linked.dwService.resetPortsAndOwner();
         }
         resolve(false);
       }, 300);
@@ -120,18 +120,42 @@ class SW {
         });
       }
 
-      if (event.data.type === 'WORKER_PORT') {
+      if (event.data.type === 'WORKER_PORTS') {
         const source = event.source as WindowClient;
         const linked = this.#map.get(event.data.payload.idDW);
+        const ports = {
+          main: event.data.payload.ports[0],
+          custom: event.data.payload.ports[1],
+        };
         if (!linked) {
           const dwService = new DWService();
-          dwService.setPortAndOwner(event.data.payload.port, source.id);
+          const tabsService = new TabService();
+          dwService.setPortsAndOwner(ports, source.id);
+          this.#Gateway.setupListenerDWCustomMessages(
+            event.data.payload.ports[1],
+            (payload) =>
+              tabsService.notifyReadyTabs(
+                this.#sw,
+                payload,
+                'WORKER_CUSTOM_MESSAGE',
+              ),
+          );
+
           this.#map.set(event.data.payload.idDW, {
-            tabsService: new TabService(),
+            tabsService,
             dwService,
           });
         } else {
-          linked.dwService.setPortAndOwner(event.data.payload.port, source.id);
+          linked.dwService.setPortsAndOwner(ports, source.id);
+          this.#Gateway.setupListenerDWCustomMessages(
+            event.data.payload.ports[1],
+            (payload) =>
+              linked.tabsService.notifyReadyTabs(
+                this.#sw,
+                payload,
+                'WORKER_CUSTOM_MESSAGE',
+              ),
+          );
         }
         this.sendMessageToTab(source, { type: 'PORT_READY' });
       }
@@ -178,6 +202,25 @@ class SW {
           console.error(message);
         }
       }
+
+      if (event.data.type === 'PROPAGATE_MESSAGE') {
+        try {
+          const { worker: linkedDW } = this.getDWLinkedToTab(
+            (event.source as Client).id,
+          );
+          linkedDW.tabsService.notifyReadyTabs(
+            this.#sw,
+            event.data.payload,
+            'PROPAGATED_MESSAGE',
+          );
+        } catch (error) {
+          let message = 'Error in SW upon receiving PROPAGATE_MESSAGE';
+          if (error instanceof Error) {
+            message += `: ${error.message}`;
+          }
+          console.error(message);
+        }
+      }
     });
 
     this.#sw.addEventListener('fetch', (event) => {
@@ -204,12 +247,12 @@ class SW {
               event,
               this.#sw,
               (sw: ServiceWorkerGlobalScope) => {
-                return linkedDW.dwService.ensurePortIsReady(
+                return linkedDW.dwService.ensurePortsAreReady(
                   sw,
                   linkedDW.tabsService.getReadyTab,
                 );
               },
-              linkedDW.dwService.getPort,
+              linkedDW.dwService.getMainPort,
               linkedDW.tabsService.notifyReadyTabs,
             ),
           );

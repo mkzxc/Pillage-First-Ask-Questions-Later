@@ -13,14 +13,15 @@ type TabToSWMessage =
   | {
       type: (typeof TAB_TO_SW_MESSAGE_TYPES)[1];
       payload: {
-        port: MessagePort;
+        ports: [MessagePort, MessagePort];
         idDW: string;
       };
     }
   | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[2]; payload: string }
   | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[3] }
   | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[4] }
-  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[5] };
+  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[5] }
+  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[6]; payload: unknown };
 
 type SWToTabMessageOnSuccess<T extends ActionData> = {
   type: (typeof SW_TO_TAB_MESSAGE_TYPES)[3];
@@ -39,12 +40,21 @@ type SWToTabMessage =
   | { type: (typeof SW_TO_TAB_MESSAGE_TYPES)[4]; payload: boolean }
   | SWToTabMessageOnError<ActionData>
   | { type: (typeof SW_TO_TAB_MESSAGE_TYPES)[6] }
-  | { type: (typeof SW_TO_TAB_MESSAGE_TYPES)[7] };
+  | { type: (typeof SW_TO_TAB_MESSAGE_TYPES)[7] }
+  | {
+      type: (typeof SW_TO_TAB_MESSAGE_TYPES)[8];
+      payload: unknown;
+    }
+  | { type: (typeof SW_TO_TAB_MESSAGE_TYPES)[9]; payload: unknown };
 
 type DWToSWMessage =
   | { type: (typeof DW_TO_SW_MESSAGE_TYPES)[0] }
   | { type: (typeof DW_TO_SW_MESSAGE_TYPES)[1]; result: unknown }
-  | { type: (typeof DW_TO_SW_MESSAGE_TYPES)[2]; error: string };
+  | { type: (typeof DW_TO_SW_MESSAGE_TYPES)[2]; error: string }
+  | {
+      type: (typeof DW_TO_SW_MESSAGE_TYPES)[3];
+      payload: unknown;
+    };
 
 type SWToDWMessage =
   | { type: (typeof SW_TO_DW_MESSAGE_TYPES)[0] }
@@ -53,7 +63,7 @@ type SWToDWMessage =
 type TabToDWMessage =
   | {
       type: (typeof TAB_TO_DW_MESSAGE_TYPES)[0];
-      payload: MessagePort;
+      payload: [MessagePort, MessagePort];
     }
   | { type: (typeof TAB_TO_DW_MESSAGE_TYPES)[1] };
 

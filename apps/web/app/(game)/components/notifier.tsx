@@ -264,8 +264,6 @@ export const Notifier = ({ serverSlug }: NotifierProps) => {
     }
 
     const handleMessage = async (event: MessageEvent<ApiNotificationEvent>) => {
-      // console.log('Notifier handleMessage:', event);
-
       if (isEventCreatedNotificationMessageEvent(event)) {
         const { data } = event;
         const info = getEventCreatedInfo(data, {
@@ -334,11 +332,11 @@ export const Notifier = ({ serverSlug }: NotifierProps) => {
 
     // return () => {
     //   apiWorker.removeEventListener('message', handleMessage);
-    // };
+    // }
 
-    const onMessage = apiTab.subscribe('OP_SUCCESS', (payload) => {
-      //@ts-expect-error //TODO Testing purposes
-      handleMessage(payload);
+    const onMessage = apiTab.subscribe('WORKER_CUSTOM_MESSAGE', (payload) => {
+      //@ts-expect-error Testing purposes
+      handleMessage({ data: payload });
     });
 
     return () => {
