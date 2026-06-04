@@ -1,0 +1,29 @@
+{
+  "name": "@pillage-first/cross-tab",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "author": "mkzxc <mirkozxc@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jurerotar/Pillage-First-Ask-Questions-Later",
+    "directory": "packages/cross-tab"
+  },
+  "exports": {
+    ".": {
+      "default": "./src/cross-tab-worker.ts"
+    }
+  },
+  "scripts": {
+    "lint:check": "biome lint --no-errors-on-unmatched",
+    "lint": "biome lint --fix --no-errors-on-unmatched",
+    "lint:check/oxlint": "oxlint --type-aware .",
+    "lint/oxlint": "oxlint --type-aware --fix .",
+    "format:check": "biome ci --linter-enabled=false",
+    "format": "biome check --write --no-errors-on-unmatched",
+    "type-check": "tsgo"
+  },
+  "devDependencies": {
+    "typescript": "6.0.2"
+  }
+}
