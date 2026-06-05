@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
 } from 'react';
+import type { CrossTabWorker } from '@pillage-first/cross-tab';
 import type { EventApiNotificationEvent } from '@pillage-first/types/api-events';
 import type { Server } from '@pillage-first/types/models/server';
 import { eventsCacheKey } from 'app/(game)/constants/query-keys';
@@ -16,13 +17,14 @@ import {
   createWorkerFetcher,
   type Fetcher,
 } from 'app/(game)/providers/utils/worker-fetch';
+import type { PropagationEvent } from './types';
 
 type ApiProviderProps = {
   serverSlug: Server['slug'];
 };
 
 type ApiContextReturn = {
-  apiWorker: Worker;
+  apiWorker: CrossTabWorker;
   fetcher: Fetcher;
 };
 
@@ -68,7 +70,16 @@ export const ApiProvider = ({
       return debounced;
     };
 
-    const handleMessage = (event: MessageEvent<EventApiNotificationEvent>) => {
+    const handleMessage = (
+      event: MessageEvent<EventApiNotificationEvent | PropagationEvent>,
+    ) => {
+      if (event.data.eventKey === 'invalidation') {
+        event.data.queryKeys.forEach((arr) => {
+          queryClient.invalidateQueries({ queryKey: arr as string[] });
+        });
+        return;
+      }
+
       if (!isEventResolvedSuccessfullyNotificationMessageEvent(event)) {
         return;
       }
