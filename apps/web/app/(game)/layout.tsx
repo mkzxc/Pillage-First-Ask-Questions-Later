@@ -12,7 +12,7 @@ import type { ToasterProps } from 'sonner';
 import type { Route } from '@react-router/types/app/(game)/+types/layout';
 import { useMediaQuery } from 'app/(game)/(village-slug)/hooks/dom/use-media-query';
 import { Notifier } from 'app/(game)/components/notifier';
-import { serverExistAndLockMiddleware } from 'app/(game)/middleware/server-already-open-middleware';
+import { serverExistsMiddleware } from 'app/(game)/middleware/server-exists-middleware';
 import { ApiProvider } from 'app/(game)/providers/api-provider';
 import { HeadLinks } from 'app/components/head-links';
 import { Spinner } from 'app/components/ui/spinner';
@@ -49,7 +49,7 @@ export const shouldRevalidate: ShouldRevalidateFunction = () => {
 };
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
-  serverExistAndLockMiddleware,
+  serverExistsMiddleware,
 ];
 
 const LayoutFallback = () => {
@@ -121,10 +121,7 @@ const LayoutContent = memo<Route.ComponentProps>(
                 <Notifier serverSlug={serverSlug} />
               </ApiProvider>
             </Suspense>
-            <Toaster
-              position={toasterPosition}
-              closeButton
-            />
+            <Toaster position={toasterPosition} closeButton />
           </QueryClientProvider>
           <ScrollRestoration />
           <Scripts />

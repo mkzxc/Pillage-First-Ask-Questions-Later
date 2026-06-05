@@ -1,56 +1,25 @@
 import { OutdatedDatabaseSchemaError } from '@pillage-first/api/errors';
+import type { CrossTabWorker } from '@pillage-first/cross-tab';
 import { isControllerMessageErrorNotificationMessageEvent } from 'app/(game)/providers/guards/api-notification-event-guards';
 
 export type Fetcher = ReturnType<typeof createWorkerFetcher>;
 
-export const createWorkerFetcher = (worker: Worker) => {
+export const createWorkerFetcher = (worker: CrossTabWorker) => {
   return async <TData = void, TArgs = unknown>(
     url: string,
     init?: Omit<RequestInit, 'body'> & { body?: TArgs },
   ): Promise<{ data: TData }> => {
-    const { port1, port2 } = new MessageChannel();
+    const event = await worker.fetcher(url, init);
+    const { data } = event;
+    if (isControllerMessageErrorNotificationMessageEvent(event)) {
+      const { error } = data;
 
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        port1.close();
-        reject(new Error('Worker request timed out'));
-      }, 10_000);
+      if (error.message.includes('sqlite3 result code 1')) {
+        throw new OutdatedDatabaseSchemaError();
+      }
 
-      const handler = (event: MessageEvent) => {
-        const { data } = event;
-
-        clearTimeout(timeout);
-        port1.removeEventListener('message', handler);
-        port1.close();
-
-        if (isControllerMessageErrorNotificationMessageEvent(event)) {
-          const { error } = data;
-
-          if (error.message.includes('sqlite3 result code 1')) {
-            reject(new OutdatedDatabaseSchemaError());
-            return;
-          }
-
-          reject(error);
-          return;
-        }
-
-        resolve(data);
-      };
-
-      port1.addEventListener('message', handler);
-      port1.start();
-
-      worker.postMessage(
-        {
-          type: 'WORKER_MESSAGE',
-          url,
-          method: init?.method ?? 'GET',
-          body: init?.body ?? null,
-          ...init,
-        },
-        [port2],
-      );
-    });
+      throw error;
+    }
+    return data;
   };
 };
