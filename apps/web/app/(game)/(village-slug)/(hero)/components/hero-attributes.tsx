@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { FaHome } from 'react-icons/fa';
@@ -29,6 +30,147 @@ import {
   SelectValue,
 } from 'app/components/ui/select';
 import { Slider } from 'app/components/ui/slider';
+
+type SelectableAttributes = ReturnType<
+  typeof useHero
+>['hero']['selectableAttributes'];
+
+const getAbilityPointsSectionKey = (
+  selectableAttributes: SelectableAttributes,
+) => {
+  return Object.keys(selectableAttributes)
+    .map((key) => `${key}-${selectableAttributes[key]}`)
+    .join('_');
+};
+
+interface AbilityPointsSectionProps {
+  selectableAttributes: SelectableAttributes;
+  updateAttributes: ReturnType<typeof useHero>['updateHeroAttributes'];
+  level: number;
+}
+const AbilityPointsSection: React.FC<AbilityPointsSectionProps> = ({
+  selectableAttributes,
+  updateAttributes,
+  level,
+}) => {
+  const { t } = useTranslation();
+  const [attributes, setAttributes] = useState(selectableAttributes);
+
+  const totalSpentPoints = useMemo(() => {
+    return Object.values(attributes).reduce((total, curr) => total + curr, 0);
+  }, [attributes]);
+
+  const isLevelUpAvailable = (level + 1) * 4 > totalSpentPoints;
+  const freePoints = (level + 1) * 4 - totalSpentPoints;
+
+  const handleAttributeChange = (
+    key: keyof typeof selectableAttributes,
+    delta: number,
+  ) => {
+    setAttributes((prev) => {
+      const newValue = prev[key] + delta;
+      if (newValue < selectableAttributes[key] || newValue > 100) {
+        return prev;
+      }
+      if (delta > 0 && !isLevelUpAvailable) {
+        return prev;
+      }
+      return { ...prev, [key]: newValue };
+    });
+  };
+
+  const attributeLabels = {
+    attackPower: t('Attack power'),
+    resourceProduction: t('Resource production'),
+    attackBonus: t('Attack bonus'),
+    defenceBonus: t('Defence bonus'),
+  };
+
+  return (
+    <SectionContent>
+      <div className="flex justify-between items-center">
+        <Text as="h2">{t('Ability points')}</Text>
+        {isLevelUpAvailable && (
+          <Text className="text-primary font-bold">
+            {t('Free ability points')}: {freePoints}
+          </Text>
+        )}
+      </div>
+      <Text>
+        {t(
+          'Ability points can be used to improve your hero. Hero starts their journey with 4 ability points. Each time a hero gains a level they earn 4 additional ability points that can be used to increase any of the four abilities. Each ability can only be increased a hundred times.',
+        )}
+      </Text>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mt-2">
+        {(
+          Object.keys(selectableAttributes) as Array<
+            keyof typeof selectableAttributes
+          >
+        ).map((key) => (
+          <div
+            key={key}
+            className="flex flex-col gap-2"
+          >
+            <div className="flex justify-between items-center">
+              <Text className="text-xs font-medium text-muted-foreground uppercase">
+                {attributeLabels[key]}
+              </Text>
+              <Text className="font-bold text-sm">{attributes[key]} / 100</Text>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8 shrink-0"
+                onClick={() => handleAttributeChange(key, -1)}
+                disabled={attributes[key] <= selectableAttributes[key]}
+              >
+                <LuMinus />
+              </Button>
+              <Slider
+                value={[attributes[key]]}
+                max={100}
+                disabled={
+                  !isLevelUpAvailable &&
+                  attributes[key] === selectableAttributes[key]
+                }
+                onValueChange={([val]) => {
+                  const delta = val - attributes[key];
+                  if (delta > 0 && freePoints < delta) {
+                    handleAttributeChange(key, freePoints);
+                  } else {
+                    handleAttributeChange(key, delta);
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8 shrink-0"
+                onClick={() => handleAttributeChange(key, 1)}
+                disabled={!isLevelUpAvailable || attributes[key] >= 100}
+              >
+                <LuPlus />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Button
+        size="fit"
+        className="mt-4"
+        disabled={
+          totalSpentPoints ===
+          Object.values(selectableAttributes).reduce((a, b) => a + b, 0)
+        }
+        onClick={() => updateAttributes(attributes)}
+      >
+        {t('Save changes')}
+      </Button>
+    </SectionContent>
+  );
+};
 
 export const HeroAttributes = () => {
   const { t } = useTranslation();
@@ -68,39 +210,7 @@ export const HeroAttributes = () => {
 
   const { level, percentToNextLevel } = calculateHeroLevel(experience);
 
-  const [attributes, setAttributes] = useState(selectableAttributes);
-
-  const totalSpentPoints = useMemo(() => {
-    return Object.values(attributes).reduce((total, curr) => total + curr, 0);
-  }, [attributes]);
-
-  const isLevelUpAvailable = (level + 1) * 4 > totalSpentPoints;
-  const freePoints = (level + 1) * 4 - totalSpentPoints;
-
   const heroStrength = baseAttackPower;
-
-  const handleAttributeChange = (
-    key: keyof typeof selectableAttributes,
-    delta: number,
-  ) => {
-    setAttributes((prev) => {
-      const newValue = prev[key] + delta;
-      if (newValue < selectableAttributes[key] || newValue > 100) {
-        return prev;
-      }
-      if (delta > 0 && !isLevelUpAvailable) {
-        return prev;
-      }
-      return { ...prev, [key]: newValue };
-    });
-  };
-
-  const attributeLabels = {
-    attackPower: t('Attack power'),
-    resourceProduction: t('Resource production'),
-    attackBonus: t('Attack bonus'),
-    defenceBonus: t('Defence bonus'),
-  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -232,90 +342,12 @@ export const HeroAttributes = () => {
         {!isHeroAlive && <HeroRevival />}
         {isHeroAlive && (
           <>
-            <SectionContent>
-              <div className="flex justify-between items-center">
-                <Text as="h2">{t('Ability points')}</Text>
-                {isLevelUpAvailable && (
-                  <Text className="text-primary font-bold">
-                    {t('Free ability points')}: {freePoints}
-                  </Text>
-                )}
-              </div>
-              <Text>
-                {t(
-                  'Ability points can be used to improve your hero. Hero starts their journey with 4 ability points. Each time a hero gains a level they earn 4 additional ability points that can be used to increase any of the four abilities. Each ability can only be increased a hundred times.',
-                )}
-              </Text>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mt-2">
-                {(
-                  Object.keys(selectableAttributes) as Array<
-                    keyof typeof selectableAttributes
-                  >
-                ).map((key) => (
-                  <div
-                    key={key}
-                    className="flex flex-col gap-2"
-                  >
-                    <div className="flex justify-between items-center">
-                      <Text className="text-xs font-medium text-muted-foreground uppercase">
-                        {attributeLabels[key]}
-                      </Text>
-                      <Text className="font-bold text-sm">
-                        {attributes[key]} / 100
-                      </Text>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 shrink-0"
-                        onClick={() => handleAttributeChange(key, -1)}
-                        disabled={attributes[key] <= selectableAttributes[key]}
-                      >
-                        <LuMinus />
-                      </Button>
-                      <Slider
-                        value={[attributes[key]]}
-                        max={100}
-                        disabled={
-                          !isLevelUpAvailable &&
-                          attributes[key] === selectableAttributes[key]
-                        }
-                        onValueChange={([val]) => {
-                          const delta = val - attributes[key];
-                          if (delta > 0 && freePoints < delta) {
-                            handleAttributeChange(key, freePoints);
-                          } else {
-                            handleAttributeChange(key, delta);
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 shrink-0"
-                        onClick={() => handleAttributeChange(key, 1)}
-                        disabled={!isLevelUpAvailable || attributes[key] >= 100}
-                      >
-                        <LuPlus />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button
-                size="fit"
-                className="mt-4"
-                disabled={
-                  totalSpentPoints ===
-                  Object.values(selectableAttributes).reduce((a, b) => a + b, 0)
-                }
-                onClick={() => updateHeroAttributes(attributes)}
-              >
-                {t('Save changes')}
-              </Button>
-            </SectionContent>
+            <AbilityPointsSection
+              selectableAttributes={selectableAttributes}
+              updateAttributes={updateHeroAttributes}
+              level={level}
+              key={getAbilityPointsSectionKey(selectableAttributes)}
+            />
             <SectionContent>
               <Text as="h2">{t('Resource production')}</Text>
               <Text>
