@@ -7,7 +7,7 @@ import type {
 import { useCurrentVillage } from 'app/(game)/(village-slug)/hooks/current-village/use-current-village';
 import { eventsCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 type CreateEventArgs<T extends GameEventType> = Omit<
   GameEventTypeToEventArgsMap<T>,
@@ -21,6 +21,7 @@ type SendEventArgs<T extends GameEventType> = CreateEventArgs<T> & {
 export const useCreateEvent = <T extends GameEventType>(eventType: T) => {
   const { currentVillage } = useCurrentVillage();
   const { fetcher } = use(ApiContext);
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { mutate: createEvent } = useMutation<void, Error, SendEventArgs<T>>({
     mutationFn: async (args) => {
@@ -41,7 +42,7 @@ export const useCreateEvent = <T extends GameEventType>(eventType: T) => {
       _onMutateResult,
       context,
     ) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         ...cachesToClearImmediately.map((queryKey) => [queryKey]),
         [eventsCacheKey],
       ]);

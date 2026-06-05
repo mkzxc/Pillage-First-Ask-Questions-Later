@@ -3,10 +3,11 @@ import { use } from 'react';
 import type { MapMarker } from '@pillage-first/types/models/map-marker';
 import { mapMarkersCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from '../../hooks/use-invalidate-and-propagate-queries';
 
 export const useMapMarkers = () => {
   const { fetcher } = use(ApiContext);
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: mapMarkers } = useSuspenseQuery<MapMarker[]>({
     queryKey: [mapMarkersCacheKey],
@@ -28,7 +29,7 @@ export const useMapMarkers = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[mapMarkersCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[mapMarkersCacheKey]]);
     },
   });
 
@@ -43,7 +44,7 @@ export const useMapMarkers = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[mapMarkersCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[mapMarkersCacheKey]]);
     },
   });
 

@@ -10,11 +10,12 @@ import {
   questsCacheKey,
 } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 export const useQuests = () => {
   const { fetcher } = use(ApiContext);
   const { currentVillage } = useCurrentVillage();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: quests } = useSuspenseQuery({
     queryKey: [questsCacheKey, currentVillage.id],
@@ -39,7 +40,7 @@ export const useQuests = () => {
       );
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [questsCacheKey],
         [collectableQuestCountCacheKey],
         [currentVillageCacheKey],

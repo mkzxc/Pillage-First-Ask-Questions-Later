@@ -11,10 +11,11 @@ import {
   heroCacheKey,
 } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 export const useHero = () => {
   const { fetcher } = use(ApiContext);
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: hero } = useSuspenseQuery({
     queryKey: [heroCacheKey],
@@ -41,7 +42,7 @@ export const useHero = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [heroCacheKey],
         [effectsCacheKey],
         [currentVillageCacheKey],
@@ -61,7 +62,7 @@ export const useHero = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [heroCacheKey],
         [effectsCacheKey],
         [currentVillageCacheKey],

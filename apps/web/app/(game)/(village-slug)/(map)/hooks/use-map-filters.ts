@@ -3,7 +3,7 @@ import { use } from 'react';
 import type { MapFilters } from '@pillage-first/types/models/map-filters';
 import { mapFiltersCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from '../../hooks/use-invalidate-and-propagate-queries';
 
 type UpdateMapFiltersArgs = {
   filterName: keyof MapFilters;
@@ -12,6 +12,7 @@ type UpdateMapFiltersArgs = {
 
 export const useMapFilters = () => {
   const { fetcher } = use(ApiContext);
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: mapFilters } = useSuspenseQuery({
     queryKey: [mapFiltersCacheKey],
@@ -35,7 +36,7 @@ export const useMapFilters = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[mapFiltersCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[mapFiltersCacheKey]]);
     },
   });
 

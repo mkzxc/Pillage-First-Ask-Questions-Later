@@ -6,7 +6,7 @@ import {
 } from '@pillage-first/types/models/preferences';
 import { preferencesCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 type UpdatePreferenceArgs = {
   preferenceName: keyof Preferences;
@@ -15,6 +15,7 @@ type UpdatePreferenceArgs = {
 
 export const usePreferences = () => {
   const { fetcher } = use(ApiContext);
+  const invalidateAndPropagate = useInvalidateAndPropagateQueries();
 
   const { data: preferences } = useSuspenseQuery({
     queryKey: [preferencesCacheKey],
@@ -41,7 +42,7 @@ export const usePreferences = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [[preferencesCacheKey]]);
+      await invalidateAndPropagate(context, [[preferencesCacheKey]]);
     },
   });
 

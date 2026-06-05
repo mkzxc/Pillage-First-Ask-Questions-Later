@@ -7,7 +7,7 @@ import type { Tile } from '@pillage-first/types/models/tile';
 import { useCurrentVillage } from 'app/(game)/(village-slug)/hooks/current-village/use-current-village';
 import { effectsCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 type AbandonOasisArgs = {
   oasisId: Tile['id'];
@@ -46,6 +46,7 @@ const occupiableOasisInRangeCacheKey = 'occupiable-oasis-in-range';
 export const useOccupiableOasisInRange = () => {
   const { fetcher } = use(ApiContext);
   const { currentVillage } = useCurrentVillage();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: occupiableOasisInRange } = useSuspenseQuery({
     queryKey: [occupiableOasisInRangeCacheKey, currentVillage.id],
@@ -65,7 +66,7 @@ export const useOccupiableOasisInRange = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [occupiableOasisInRangeCacheKey],
         [effectsCacheKey],
       ]);
@@ -79,7 +80,7 @@ export const useOccupiableOasisInRange = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [occupiableOasisInRangeCacheKey],
         [effectsCacheKey],
       ]);

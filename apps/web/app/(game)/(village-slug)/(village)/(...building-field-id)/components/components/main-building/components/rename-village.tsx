@@ -10,6 +10,7 @@ import {
   SectionContent,
 } from 'app/(game)/(village-slug)/components/building-layout';
 import { useCurrentVillage } from 'app/(game)/(village-slug)/hooks/current-village/use-current-village';
+import { useInvalidateAndPropagateQueries } from 'app/(game)/(village-slug)/hooks/use-invalidate-and-propagate-queries';
 import { villageListingCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
 import { Text } from 'app/components/text';
@@ -23,7 +24,6 @@ import {
   FormMessage,
 } from 'app/components/ui/form';
 import { Input } from 'app/components/ui/input';
-import { invalidateQueries } from 'app/utils/react-query';
 
 const formSchema = z.strictObject({
   name: z
@@ -36,6 +36,7 @@ export const RenameVillage = () => {
   const { fetcher } = use(ApiContext);
   const { t } = useTranslation();
   const { currentVillage } = useCurrentVillage();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,7 +59,7 @@ export const RenameVillage = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[villageListingCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[villageListingCacheKey]]);
     },
   });
 

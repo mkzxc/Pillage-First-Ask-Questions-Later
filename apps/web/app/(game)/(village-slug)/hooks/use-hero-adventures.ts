@@ -8,10 +8,11 @@ import {
   villageTroopsCacheKey,
 } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 export const useHeroAdventures = () => {
   const { fetcher } = use(ApiContext);
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const {
     data: { available, completed },
@@ -31,7 +32,7 @@ export const useHeroAdventures = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [heroCacheKey],
         [adventurePointsCacheKey],
         [eventsCacheKey],

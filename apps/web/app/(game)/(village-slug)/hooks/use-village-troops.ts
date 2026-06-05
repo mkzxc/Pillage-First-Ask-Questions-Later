@@ -12,7 +12,7 @@ import {
   villageTroopsCacheKey,
 } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 type SendTroopsArgs = {
   type: TroopMovementEventType;
@@ -23,6 +23,7 @@ type SendTroopsArgs = {
 export const useVillageTroops = () => {
   const { fetcher } = use(ApiContext);
   const { currentVillage } = useCurrentVillage();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: villageTroops } = useSuspenseQuery({
     queryKey: [villageTroopsCacheKey, currentVillage.tileId],
@@ -54,7 +55,7 @@ export const useVillageTroops = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [villageTroopsCacheKey, currentVillage.tileId],
         [troopMovementsCacheKey, currentVillage.id],
       ]);

@@ -3,8 +3,8 @@ import { use } from 'react';
 import { z } from 'zod';
 import { farmListsCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
 import { useCurrentVillage } from './current-village/use-current-village';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 const farmListSchema = z.strictObject({
   id: z.number(),
@@ -20,6 +20,7 @@ const farmListWithTilesSchema = farmListSchema.extend({
 export const useFarmLists = () => {
   const { fetcher } = use(ApiContext);
   const { currentVillage } = useCurrentVillage();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: farmLists } = useSuspenseQuery({
     queryKey: [farmListsCacheKey],
@@ -38,7 +39,7 @@ export const useFarmLists = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[farmListsCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[farmListsCacheKey]]);
     },
   });
 
@@ -49,7 +50,7 @@ export const useFarmLists = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[farmListsCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[farmListsCacheKey]]);
     },
   });
 
@@ -69,7 +70,7 @@ export const useFarmLists = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[farmListsCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[farmListsCacheKey]]);
     },
   });
 
@@ -81,7 +82,7 @@ export const useFarmLists = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[farmListsCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[farmListsCacheKey]]);
     },
   });
 
@@ -104,7 +105,7 @@ export const useFarmLists = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [farmListsCacheKey, currentVillage.id],
       ]);
     },
@@ -123,7 +124,7 @@ export const useFarmLists = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [farmListsCacheKey, currentVillage.id],
       ]);
     },

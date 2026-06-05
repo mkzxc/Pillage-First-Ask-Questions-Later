@@ -4,7 +4,7 @@ import type { Bookmarks } from '@pillage-first/types/models/bookmark';
 import { useCurrentVillage } from 'app/(game)/(village-slug)/hooks/current-village/use-current-village';
 import { bookmarksCacheKey } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 type UpdateBookmarksArgs = {
   buildingId: keyof Bookmarks;
@@ -14,6 +14,7 @@ type UpdateBookmarksArgs = {
 export const useBookmarks = () => {
   const { fetcher } = use(ApiContext);
   const { currentVillage } = useCurrentVillage();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: bookmarks } = useSuspenseQuery({
     queryKey: [bookmarksCacheKey],
@@ -40,7 +41,7 @@ export const useBookmarks = () => {
       });
     },
     onSuccess: async (_data, _vars, _onMutateResult, context) => {
-      await invalidateQueries(context, [[bookmarksCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[bookmarksCacheKey]]);
     },
   });
 

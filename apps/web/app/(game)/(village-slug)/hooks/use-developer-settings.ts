@@ -16,7 +16,7 @@ import {
   villageTroopsCacheKey,
 } from 'app/(game)/constants/query-keys';
 import { ApiContext } from 'app/(game)/providers/api-provider';
-import { invalidateQueries } from 'app/utils/react-query';
+import { useInvalidateAndPropagateQueries } from './use-invalidate-and-propagate-queries';
 
 type UpdateDeveloperSettingArgs = {
   developerSettingName: keyof DeveloperSettings;
@@ -39,6 +39,7 @@ export const useDeveloperSettings = () => {
   const { fetcher } = use(ApiContext);
   const { villageSlug } = use(VillageSlugContext);
   const { hero } = useHero();
+  const invalidateAndPropagateQueries = useInvalidateAndPropagateQueries();
 
   const { data: developerSettings } = useSuspenseQuery({
     queryKey: [developerSettingsCacheKey],
@@ -65,7 +66,9 @@ export const useDeveloperSettings = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [[developerSettingsCacheKey]]);
+      await invalidateAndPropagateQueries(context, [
+        [developerSettingsCacheKey],
+      ]);
     },
   });
 
@@ -85,7 +88,9 @@ export const useDeveloperSettings = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [[currentVillageCacheKey, villageSlug]]);
+      await invalidateAndPropagateQueries(context, [
+        [currentVillageCacheKey, villageSlug],
+      ]);
     },
   });
 
@@ -101,7 +106,7 @@ export const useDeveloperSettings = () => {
         });
       },
       onSuccess: async (_, _args, _onMutateResult, context) => {
-        await invalidateQueries(context, [
+        await invalidateAndPropagateQueries(context, [
           [heroLoadoutCacheKey],
           [heroInventoryCacheKey],
         ]);
@@ -119,7 +124,7 @@ export const useDeveloperSettings = () => {
       );
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [['adventure-points']]);
+      await invalidateAndPropagateQueries(context, [['adventure-points']]);
     },
   });
 
@@ -130,7 +135,7 @@ export const useDeveloperSettings = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [[heroCacheKey]]);
+      await invalidateAndPropagateQueries(context, [[heroCacheKey]]);
     },
   });
 
@@ -141,7 +146,7 @@ export const useDeveloperSettings = () => {
       });
     },
     onSuccess: async (_, _args, _onMutateResult, context) => {
-      await invalidateQueries(context, [
+      await invalidateAndPropagateQueries(context, [
         [heroCacheKey],
         [villageTroopsCacheKey],
         [effectsCacheKey],
